@@ -6,6 +6,13 @@
 
 **纯静态网页，无后端、无数据库**——浏览器直连智谱接口，API Key 仅存在自己浏览器的 localStorage 里，不上传任何服务器。
 
+## 在线预览
+
+- 桌面版：<https://glm.usage.fuyapeng.com/>
+- 手机版：<https://glm.usage.fuyapeng.com/h5>
+
+打开后点「＋ 添加」填入你自己的 API Key 即可查询。
+
 ## 效果预览
 
 **桌面版**（`index.html`）
