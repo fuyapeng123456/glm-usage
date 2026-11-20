@@ -185,6 +185,27 @@ async function copyKey(id) {
   }
 }
 
+/** 通用纯文本复制（含降级），供 data-copy-text 元素使用 */
+function copyPlain(text, okMsg) {
+  const finish = () => showToast(okMsg);
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(finish, () => { fallbackCopyText(text); finish(); });
+  } else {
+    fallbackCopyText(text);
+    finish();
+  }
+}
+function fallbackCopyText(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  ta.remove();
+}
+
 function selectKey(id) {
   setSelectedId(id);
   renderKeys();
@@ -351,6 +372,11 @@ function bindEvents() {
   });
 
   $("#btn-refresh").addEventListener("click", refreshUsage);
+
+  // 微信反馈卡片：点击复制微信号
+  document.querySelectorAll("[data-copy-text]").forEach((el) => {
+    el.addEventListener("click", () => copyPlain(el.dataset.copyText, "微信号已复制：" + el.dataset.copyText));
+  });
 }
 
 /* ---------- 启动 ---------- */
