@@ -17,11 +17,11 @@
 
 **桌面版**（`index.html`）
 
-![桌面版](screenshots/pc.png)
+![桌面版](screenshots/pc-v2.png)
 
 **手机版**（`h5.html`）
 
-![手机版](screenshots/h5.png)
+![手机版](screenshots/h5-v2.png)
 
 ## 部署（宝塔 3 步）
 
