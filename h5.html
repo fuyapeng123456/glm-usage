@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0e1116">
+<title>GLM 用量监控 H5</title>
+<style>
+/* ===== 基础（单文件手机版，与桌面版共用 localStorage）===== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0e1116;
+  --panel: #161a22;
+  --panel-2: #1d2230;
+  --border: #262d3d;
+  --text: #e8ebf2;
+  --text-2: #8b93a7;
+  --accent: #4f7cff;
+  --accent-2: #9b5cff;
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --danger: #f87171;
+  --radius: 14px;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  max-width: 640px;          /* 手机优先，桌面端居中呈现手机版式 */
+  margin: 0 auto;
+}
+
+/* ===== 顶部 ===== */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(79, 124, 255, .08), transparent);
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-logo {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 4px 16px rgba(79, 124, 255, .35);
+}
+.brand-text h1 { font-size: 17px; font-weight: 700; }
+.brand-text p { font-size: 11.5px; color: var(--text-2); margin-top: 2px; }
+.last-updated { font-size: 11px; color: var(--text-2); }
+
+/* ===== 面板 ===== */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px calc(24px + env(safe-area-inset-bottom));
+}
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.panel-head h2 { font-size: 14.5px; font-weight: 600; }
+
+/* ===== 按钮 ===== */
+.btn {
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  transition: .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }
+.btn-primary:hover:not(:disabled) { filter: brightness(1.12); }
+.btn-ghost { background: transparent; border: 1px solid var(--border); }
+.btn-ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.btn-danger-ghost { background: transparent; border: 1px solid rgba(248, 113, 113, .4); color: var(--danger); }
+.btn-danger-ghost:hover:not(:disabled) { border-color: var(--danger); }
+.btn-sm { padding: 8px 14px; }
+
+/* ===== Key 选择（横向滚动 chips）===== */
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar { display: none; }
+
+.chip {
+  flex-shrink: 0;
+  max-width: 60vw;
+  padding: 9px 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.chip.active {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(79, 124, 255, .16), rgba(155, 92, 255, .1));
+}
+.chip .alias { font-size: 13px; font-weight: 600; white-space: nowrap; }
+.chip .masked { font-size: 11px; color: var(--text-2); font-family: monospace; white-space: nowrap; }
+
+/* 选中 Key 的操作行 */
+.key-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+.key-actions .btn { flex: 1; }
+
+/* ===== 添加表单 ===== */
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  margin-top: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.add-form input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 16px;           /* ≥16px 避免 iOS 聚焦自动放大 */
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+}
+.add-form input:focus { border-color: var(--accent); }
+.add-form-actions { display: flex; align-items: center; justify-content: space-between; }
+.show-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+}
+.show-key input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.empty-tip { padding: 16px 0 4px; text-align: center; font-size: 12.5px; color: var(--text-2); }
+.hint { margin-top: 12px; font-size: 11px; color: var(--text-2); line-height: 1.7; }
+
+/* ===== 用量卡片（单列堆叠）===== */
+.state { text-align: center; padding: 56px 16px; color: var(--text-2); font-size: 13.5px; }
+.state-icon { font-size: 38px; margin-bottom: 12px; }
+.state-error { color: var(--danger); line-height: 1.9; }
+
+.plan-badge {
+  display: inline-flex;
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 4px 14px rgba(79, 124, 255, .3);
+}
+.usage-cards { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+
+.quota-card {
+  padding: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.quota-card h3 { font-size: 13.5px; font-weight: 600; margin-bottom: 10px; }
+.quota-value { font-size: 26px; font-weight: 700; margin-bottom: 10px; }
+.quota-value small { font-size: 13px; color: var(--text-2); font-weight: 400; margin-left: 6px; }
+.quota-value.quota-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.quota-amount { font-size: 13px; font-weight: 400; color: var(--text-2); white-space: nowrap; }
+
+.bar { height: 8px; background: rgba(255, 255, 255, .07); border-radius: 99px; overflow: hidden; margin-bottom: 12px; }
+.bar-fill { height: 100%; border-radius: 99px; background: var(--ok); transition: width .4s ease; }
+.bar-fill.warn { background: var(--warn); }
+.bar-fill.danger { background: var(--danger); }
+
+.quota-meta { font-size: 12px; color: var(--text-2); line-height: 1.9; }
+.quota-meta b { color: var(--text); font-weight: 500; }
+
+.mcp-details {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 2;
+}
+.mcp-details b { color: var(--text); font-weight: 500; }
+
+.spin {
+  display: inline-block;
+  width: 30px; height: 30px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin-bottom: 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== 删除确认弹框 ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, .55);
+  backdrop-filter: blur(2px);
+  z-index: 50;
+  padding: 20px;
+}
+.modal {
+  width: 100%;
+  max-width: 340px;
+  padding: 20px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, .45);
+}
+.modal h3 { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+.modal p { font-size: 13px; color: var(--text-2); line-height: 1.8; word-break: break-all; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.modal-actions .btn { padding: 10px 18px; }
+.btn-danger { background: var(--danger); color: #fff; }
+
+/* ===== 轻提示 ===== */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(48px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+  z-index: 60;
+  animation: toast-in .2s ease;
+  max-width: 86vw;
+  text-align: center;
+}
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-logo">GLM</span>
+      <div class="brand-text">
+        <h1>用量监控</h1>
+        <p>智谱 BigModel · Coding Plan</p>
+      </div>
+    </div>
+    <span id="last-updated" class="last-updated"></span>
+  </header>
+
+  <main class="page">
+    <!-- Key 选择 -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>API Key</h2>
+        <button id="btn-toggle-add" class="btn btn-primary btn-sm" type="button">＋ 添加</button>
+      </div>
+      <div id="chips" class="chips"></div>
+      <div id="empty-tip" class="empty-tip">还没有添加 Key，点右上角「＋ 添加」。</div>
+      <div id="key-actions" class="key-actions hidden">
+        <button id="btn-copy" class="btn btn-ghost btn-sm" type="button">⧉ 复制完整 Key</button>
+        <button id="btn-del" class="btn btn-danger-ghost btn-sm" type="button">✕ 删除</button>
+      </div>
+      <form id="add-form" class="add-form hidden" autocomplete="off">
+        <input id="add-alias" type="text" maxlength="30" placeholder="备注名（可选）">
+        <input id="add-key" type="text" placeholder="粘贴 API Key" required>
+        <div class="add-form-actions">
+          <label class="show-key"><input id="add-show" type="checkbox">显示</label>
+          <button type="submit" class="btn btn-primary btn-sm">保存</button>
+        </div>
+      </form>
+      <p class="hint">🔒 Key 仅保存在本浏览器本地，不会上传到任何服务器；与桌面版页面共用同一份本地数据。</p>
+    </section>
+
+    <!-- 用量 -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2 id="usage-title">用量信息</h2>
+        <button id="btn-refresh" class="btn btn-ghost btn-sm" type="button" disabled>↻ 刷新</button>
+      </div>
+      <div id="usage-body">
+        <div class="state"><div class="state-icon">📊</div><p>选择一个 Key 查看用量</p></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 删除二次确认弹框 -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3>删除确认</h3>
+      <p id="modal-text"></p>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn btn-ghost btn-sm" type="button">取消</button>
+        <button id="modal-confirm" class="btn btn-danger btn-sm" type="button">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+<script>
+"use strict";
+
+/* 与桌面版 index.html 共用同一份 localStorage（同域名下互通） */
+const API_URL = "https://open.bigmodel.cn/api/monitor/usage/quota/limit";
+const LS_KEYS = "glm_api_keys";
+const LS_SELECTED = "glm_selected";
+
+const $ = (sel) => document.querySelector(sel);
+
+function loadKeys() {
+  try { return JSON.parse(localStorage.getItem(LS_KEYS)) || []; }
+  catch { return []; }
+}
+function saveKeys(keys) { localStorage.setItem(LS_KEYS, JSON.stringify(keys)); }
+function getSelectedId() { return localStorage.getItem(LS_SELECTED); }
+function setSelectedId(id) {
+  if (id) localStorage.setItem(LS_SELECTED, id);
+  else localStorage.removeItem(LS_SELECTED);
+}
+function selectedKey() {
+  return loadKeys().find((k) => k.id === getSelectedId());
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+function maskKey(key) {
+  if (key.length <= 12) return key.slice(0, 3) + "****";
+  return key.slice(0, 8) + "****" + key.slice(-4);
+}
+function fmtTime(ms) {
+  const d = new Date(Number(ms));
+  return isNaN(d) ? "未知" : d.toLocaleString("zh-CN", { hour12: false });
+}
+function relTime(ms) {
+  const diff = Number(ms) - Date.now();
+  if (isNaN(diff) || diff <= 0) return "已重置";
+  const h = diff / 3600e3;
+  if (h < 1) return `${Math.max(1, Math.round(diff / 60e3))} 分钟后`;
+  if (h < 48) return `${Math.round(h)} 小时后`;
+  return `${Math.round(h / 24)} 天后`;
+}
+function barClass(pct) {
+  if (pct >= 85) return "danger";
+  if (pct >= 60) return "warn";
+  return "";
+}
+
+/** 识别限额条目类型：5 小时窗口 / 每周窗口 / MCP 调用量 / 积分 */
+function describeLimit(item) {
+  const winSuffix = (item.unit === 3 && item.number === 5) ? "（5 小时窗口）"
+    : item.unit === 6 ? "（每周窗口）" : "";
+  if (item.type === "TIME_LIMIT") return "MCP 工具调用量";
+  if (item.type === "TOKENS_LIMIT") return "Token 用量" + winSuffix;
+  if (item.type === "CREDIT_LIMIT") return "积分用量" + winSuffix;
+  return item.type || "未知配额";
+}
+
+/* ---------- Key chips 渲染 ---------- */
+function renderChips() {
+  const keys = loadKeys();
+  const selectedId = getSelectedId();
+  const chips = $("#chips");
+  chips.innerHTML = "";
+  $("#empty-tip").classList.toggle("hidden", keys.length > 0);
+  $("#key-actions").classList.toggle("hidden", !selectedKey());
+
+  for (const item of keys) {
+    const chip = document.createElement("div");
+    chip.className = "chip" + (item.id === selectedId ? " active" : "");
+    chip.innerHTML = `
+      <div class="alias">${escapeHtml(item.alias || "未命名 Key")}</div>
+      <div class="masked">${escapeHtml(maskKey(item.key))}</div>`;
+    chip.addEventListener("click", () => {
+      setSelectedId(item.id);
+      renderChips();
+      refreshUsage();
+    });
+    chips.appendChild(chip);
+  }
+  $("#btn-refresh").disabled = !getSelectedId();
+}
+
+/* ---------- 添加 / 删除 / 复制 ---------- */
+let toastTimer = null;
+function showToast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.remove("hidden");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add("hidden"), 1800);
+}
+
+function addKey(alias, rawKey) {
+  // 去掉粘贴时可能带上的首尾引号和空白
+  const key = rawKey.trim().replace(/^["']+|["']+$/g, "").trim();
+  const keys = loadKeys();
+  const dup = keys.find((k) => k.key === key);
+  if (dup) {
+    showToast("这个 Key 已存在（" + (dup.alias || "未命名") + "）");
+    return;
+  }
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    alias: alias.trim(),
+    key,
+    addedAt: Date.now(),
+  };
+  keys.push(item);
+  saveKeys(keys);
+  setSelectedId(item.id);
+  renderChips();
+  refreshUsage();
+}
+
+let pendingDeleteId = null;
+function openDeleteModal(id) {
+  const item = loadKeys().find((k) => k.id === id);
+  if (!item) return;
+  pendingDeleteId = id;
+  $("#modal-text").textContent =
+    `确定删除「${item.alias || "未命名 Key"}」（${maskKey(item.key)}）吗？删除后如需继续使用要重新添加。`;
+  $("#modal-overlay").classList.remove("hidden");
+}
+function closeDeleteModal() {
+  pendingDeleteId = null;
+  $("#modal-overlay").classList.add("hidden");
+}
+function deleteKey(id) {
+  const keys = loadKeys();
+  if (!keys.some((k) => k.id === id)) return;
+  saveKeys(keys.filter((k) => k.id !== id));
+  if (getSelectedId() === id) {
+    setSelectedId(null);
+    $("#usage-title").textContent = "用量信息";
+    $("#usage-body").innerHTML = '<div class="state"><div class="state-icon">📊</div><p>选择一个 Key 查看用量</p></div>';
+    $("#last-updated").textContent = "";
+  }
+  renderChips();
+  showToast("已删除");
+}
+
+async function copySelectedKey() {
+  const item = selectedKey();
+  if (!item) return;
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(item.key);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = item.key;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
+    showToast("已复制完整 API Key 到剪贴板");
+  } catch (e) {
+    showToast("复制失败，请手动复制");
+  }
+}
+
+/* ---------- 用量查询 ---------- */
+async function refreshUsage() {
+  const item = selectedKey();
+  if (!item) return;
+
+  $("#usage-title").textContent = "用量信息";
+  $("#usage-body").innerHTML = `
+    <div class="state"><div class="spin"></div><p>正在查询 <code>${escapeHtml(maskKey(item.key))}</code> …</p></div>`;
+  try {
+    const resp = await fetch(API_URL, {
+      headers: { "Authorization": item.key, "Accept-Language": "en-US,en" },
+    });
+    if (resp.status === 401) throw new Error("认证失败：API Key 无效或已过期");
+    if (!resp.ok) throw new Error("接口返回 HTTP " + resp.status);
+    const payload = await resp.json();
+    if (!payload.success) throw new Error(payload.msg || "接口返回 success=false");
+    renderUsage(payload.data || {});
+  } catch (err) {
+    const msg = err instanceof TypeError ? "网络请求失败（请检查网络）" : err.message;
+    $("#usage-body").innerHTML = `
+      <div class="state state-error"><div class="state-icon">⚠️</div><p><b>查询失败</b><br>${escapeHtml(msg)}</p></div>`;
+    $("#last-updated").textContent = "更新于 " + new Date().toLocaleTimeString("zh-CN", { hour12: false });
+  }
+}
+
+function renderUsage(data) {
+  const level = String(data.level || "未知").toUpperCase();
+  const limits = data.limits || [];
+
+  /* 顺序固定：5 小时窗口 → 每周窗口 → 积分 → MCP */
+  const order = { "5h": 0, week: 1, credit: 2, mcp: 3 };
+  const parsed = limits.map((item) => {
+    const label = describeLimit(item);
+    const kind = item.type === "TIME_LIMIT" ? "mcp"
+      : item.type === "CREDIT_LIMIT" ? "credit"
+      : label.includes("5 小时") ? "5h" : "week";
+    return { ...item, label, kind };
+  }).sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9));
+
+  const cards = parsed.map((item) => {
+    const pct = Number(item.percentage) || 0;
+    let valueHtml;
+    if (item.kind === "mcp") {
+      valueHtml = `${item.currentValue ?? "?"} <small>/ ${item.usage ?? "?"} 次</small>`;
+    } else if (item.kind === "credit") {
+      valueHtml = `
+        <span class="quota-pct">${pct}<small>%</small></span>
+        <span class="quota-amount">${item.currentValue ?? "?"} / ${item.usage ?? "?"} 积分</span>`;
+    } else {
+      valueHtml = `${pct}<small>%</small>`;
+    }
+    const details = (item.usageDetails || [])
+      .map((d) => `<div>- <b>${escapeHtml(d.modelCode)}</b>：${d.usage} 次</div>`)
+      .join("");
+    const unitWord = item.kind === "mcp" ? "次" : item.kind === "credit" ? "积分" : "";
+    const remainingHtml = (unitWord && item.remaining != null)
+      ? `<div>剩余：<b>${item.remaining}</b> ${unitWord}</div>` : "";
+
+    return `
+      <div class="quota-card">
+        <h3>${escapeHtml(item.label)}</h3>
+        <div class="quota-value${item.kind === "credit" ? " quota-row" : ""}">${valueHtml}</div>
+        <div class="bar"><div class="bar-fill ${barClass(pct)}" style="width:${Math.min(100, Math.max(0, pct))}%"></div></div>
+        <div class="quota-meta">
+          ${remainingHtml}
+          <div>重置时间：<b>${fmtTime(item.nextResetTime)}</b>（${relTime(item.nextResetTime)}）</div>
+        </div>
+        ${details ? `<div class="mcp-details">${details}</div>` : ""}
+      </div>`;
+  }).join("");
+
+  $("#usage-body").innerHTML = `
+    <span class="plan-badge">${escapeHtml(level)} 套餐</span>
+    <div class="usage-cards">${cards || '<div class="state">接口未返回任何配额数据</div>'}</div>`;
+  $("#last-updated").textContent = "更新于 " + new Date().toLocaleTimeString("zh-CN", { hour12: false });
+}
+
+/* ---------- 事件绑定 ---------- */
+$("#btn-toggle-add").addEventListener("click", () => {
+  const form = $("#add-form");
+  form.classList.toggle("hidden");
+  if (!form.classList.contains("hidden")) $("#add-key").focus();
+});
+
+$("#add-show").addEventListener("change", (e) => {
+  $("#add-key").type = e.target.checked ? "text" : "password";
+});
+
+$("#add-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const key = $("#add-key").value.trim();
+  if (!key || !/^[\x21-\x7e]+$/.test(key)) {
+    showToast("请输入有效的 API Key（不含空格的英文数字串）");
+    return;
+  }
+  addKey($("#add-alias").value, key);
+  $("#add-form").reset();
+  $("#add-key").type = "text";
+  $("#add-show").checked = false;
+  $("#add-form").classList.add("hidden");
+});
+
+$("#btn-copy").addEventListener("click", copySelectedKey);
+$("#btn-del").addEventListener("click", () => {
+  const item = selectedKey();
+  if (item) openDeleteModal(item.id);
+});
+
+$("#modal-confirm").addEventListener("click", () => {
+  const id = pendingDeleteId;
+  closeDeleteModal();
+  if (id) deleteKey(id);
+});
+$("#modal-cancel").addEventListener("click", closeDeleteModal);
+$("#modal-overlay").addEventListener("click", (e) => {
+  if (e.target === $("#modal-overlay")) closeDeleteModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("#modal-overlay").classList.contains("hidden")) closeDeleteModal();
+});
+
+$("#btn-refresh").addEventListener("click", refreshUsage);
+
+/* ---------- 启动 ---------- */
+renderChips();
+if (selectedKey()) refreshUsage();
+</script>
+</body>
+</html>

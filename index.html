@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GLM 用量监控 - 智谱 Coding Plan</title>
+  <link rel="stylesheet" href="style.css?v=4">
+</head>
+<body>
+  <!-- ===== 顶部 ===== -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-logo">GLM</span>
+      <div class="brand-text">
+        <h1>用量监控</h1>
+        <p>智谱 BigModel · Coding Plan</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span id="last-updated" class="last-updated"></span>
+    </div>
+  </header>
+
+  <!-- ===== 底部：左 Key 管理 / 右 用量 ===== -->
+  <main class="layout">
+    <!-- 左侧：API Key 管理 -->
+    <aside class="panel keys-panel">
+      <div class="panel-head">
+        <h2>API Key 管理</h2>
+        <button id="btn-toggle-add" class="btn btn-primary btn-sm" type="button">＋ 添加</button>
+      </div>
+
+      <form id="add-form" class="add-form hidden" autocomplete="off">
+        <input id="add-alias" type="text" maxlength="30" placeholder="备注名（可选，如：主号）">
+        <input id="add-key" type="password" placeholder="粘贴 API Key" required>
+        <div class="add-form-actions">
+          <label class="show-key"><input id="add-show" type="checkbox"> 显示</label>
+          <button type="submit" class="btn btn-primary btn-sm">保存</button>
+        </div>
+      </form>
+
+      <ul id="key-list" class="key-list"></ul>
+      <div id="keys-empty" class="empty-tip">
+        还没有添加 Key。<br>点击右上角「＋ 添加」开始。
+      </div>
+
+      <p class="keys-hint">🔒 Key 仅保存在本浏览器本地（localStorage），不会上传到任何服务器。</p>
+    </aside>
+
+    <!-- 右侧：用量信息 -->
+    <section class="panel usage-panel">
+      <div class="panel-head">
+        <h2 id="usage-title">用量信息</h2>
+        <button id="btn-refresh" class="btn btn-ghost btn-sm" type="button" disabled>↻ 刷新</button>
+      </div>
+      <div id="usage-body" class="usage-body">
+        <div class="state state-empty">
+          <div class="state-icon">📊</div>
+          <p>在左侧选择一个 API Key 查看用量</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 删除二次确认弹框 -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <h3 id="modal-title">删除确认</h3>
+      <p id="modal-text"></p>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn btn-ghost btn-sm" type="button">取消</button>
+        <button id="modal-confirm" class="btn btn-danger btn-sm" type="button">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 轻提示 -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js?v=3"></script>
+</body>
+</html>
