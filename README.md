@@ -59,3 +59,12 @@ location /api/quota/ {
 ```
 
 然后把 `app.js` 第一行的 `API_URL` 改成 `"/api/quota/"`（`h5.html` 内的 `API_URL` 同理）。
+
+## 问题反馈
+
+官方接口可能随时改版导致查询失败，如遇页面报错、接口失效，请及时反馈：
+
+- **微信**：`fuyapeng1214`（添加请备注「glm-usage」）
+- 也可在本仓库提交 [Issues](https://github.com/fuyapeng123456/glm-usage/issues)
+
+收到反馈后会尽快适配更新。
